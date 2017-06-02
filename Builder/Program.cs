@@ -15,7 +15,7 @@ namespace Builder
     {
         private BuildManager _buildManager = BuildManager.DefaultBuildManager;
         private Dictionary<string, string> _buildProperties = new Dictionary<string, string>();
-        private Logger _logger = new SimpleConsoleLogger {Verbosity = LoggerVerbosity.Normal};
+        private Logger _logger = new SimpleConsoleLogger {Verbosity = LoggerVerbosity.Minimal};
         private string _toolsVersion = "15.0";
         private string _resourcesAbsolutePath;
 
@@ -94,35 +94,36 @@ namespace Builder
                 "resources/repo3/A.UTest/A.UTest.csproj",
             }, "Clean", true, Environment.ProcessorCount);
 
-            // Failing with:
-            //   Exception non gérée: Microsoft.Build.Exceptions.BuildAbortedException: Build was canceled.Failed to successfully launch or connect to a child MSBuild.exe process.Verify that the MSBuild.exe "C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\Bin\MSBuild.exe" launches successfully, and that it is loading the same microsoft.build.dll that the launching process loaded. If the location seems incorrect, try specifying the correct location in the BuildParameters object, or with the MSBUILD_EXE_PATH environment variable.
-            //     à Microsoft.Build.Execution.BuildManager.EndBuild()
-            // Whereas it works if
-            //    <ProjectReference Include="..\A\A.csproj">
-            // is deleted in 'A.UTest.csproj'.
             builder.Build(new[] {
                 "resources/repo3/A/A.csproj",
                 "resources/repo3/A.UTest/A.UTest.csproj",
                 "resources/repo3/B/B.csproj",
-            }, "Clean", true, Environment.ProcessorCount);
+            }, "Build", true, Environment.ProcessorCount);
+            builder.Build(new [] { "resources/getvariables.proj" }, "Run", false);
         }
 
         private static string GetMSBuildPath()
+        {
+            var vsinstalldir = GetVSPath();
+            var msBuildPath = Path.Combine(vsinstalldir, "MSBuild", "15.0", "Bin");
+            return Environment.Is64BitProcess ? Path.Combine(msBuildPath, "amd64") : msBuildPath;
+        }
+
+        private static string GetVSPath()
         {
             // Dev console, probably the best case
             var vsinstalldir = Environment.GetEnvironmentVariable("VSINSTALLDIR");
             if (!string.IsNullOrEmpty(vsinstalldir))
             {
-                var path = Path.Combine(vsinstalldir, "MSBuild", "15.0", "Bin");
-                Console.WriteLine($"Found VS from VSINSTALLDIR (Dev Console): {path}");
-                return path;
+                Console.WriteLine($"Found VS from VSINSTALLDIR (Dev Console): {vsinstalldir}");
+                return vsinstalldir;
             }
 
             var instances = VisualStudioLocationHelper.GetInstances();
 
             if (instances.Count == 0)
             {
-                throw new Exception("Couldn't find MSBuild");
+                throw new Exception("Couldn't find Visual Studio");
             }
 
             Console.WriteLine($"Found VS from Setup API: {instances[0].Path}");
@@ -131,7 +132,9 @@ namespace Builder
                 Console.WriteLine($"WARNING: Found ${instances.Count} instances of VS! Picking the first...");
             }
 
-            return Path.Combine(instances[0].Path, "MSBuild", "15.0", "Bin");
+            return instances[0].Path;
         }
+
+
     }
 }
