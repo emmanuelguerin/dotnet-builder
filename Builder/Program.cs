@@ -6,8 +6,8 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using System.Threading;
+using Microsoft.Build.Logging;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Utilities;
 
 namespace Builder
 {
@@ -15,7 +15,7 @@ namespace Builder
     {
         private BuildManager _buildManager = BuildManager.DefaultBuildManager;
         private Dictionary<string, string> _buildProperties = new Dictionary<string, string>();
-        private Logger _logger = new SimpleConsoleLogger {Verbosity = LoggerVerbosity.Minimal};
+        private ILogger _logger = new ConsoleLogger {Verbosity = LoggerVerbosity.Minimal};
         private string _toolsVersion = "15.0";
         private string _resourcesAbsolutePath;
 
@@ -83,22 +83,6 @@ namespace Builder
 
             Builder builder = new Builder(Directory.GetCurrentDirectory());
 
-            builder.Build(new[] {
-                "resources/repo3/A/A.csproj",
-                "resources/repo3/A.UTest/A.UTest.csproj",
-                "resources/repo3/B/B.csproj",
-            }, "Clean", true, 1);
-
-            builder.Build(new[] {
-                "resources/repo3/A/A.csproj",
-                "resources/repo3/A.UTest/A.UTest.csproj",
-            }, "Clean", true, Environment.ProcessorCount);
-
-            builder.Build(new[] {
-                "resources/repo3/A/A.csproj",
-                "resources/repo3/A.UTest/A.UTest.csproj",
-                "resources/repo3/B/B.csproj",
-            }, "Build", true, Environment.ProcessorCount);
             builder.Build(new [] { "resources/getvariables.proj" }, "Run", false);
         }
 
